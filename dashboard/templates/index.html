@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Traffic Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <style>
+    .intersection-sim {
+      width: 220px;
+      height: 220px;
+      margin: 20px auto;
+      position: relative;
+      background: #333;
+      border: 5px solid #111;
+      border-radius: 12px;
+    }
+    .lane {
+      width: 60px;
+      height: 60px;
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .lane .light {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #444;
+      box-shadow: 0 0 5px #000;
+    }
+    .lane.north { top: 0; left: 50%; transform: translateX(-50%); }
+    .lane.south { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .lane.east  { right: 0; top: 50%; transform: translateY(-50%); }
+    .lane.west  { left: 0; top: 50%; transform: translateY(-50%); }
+  </style>
+</head>
+<body>
+  <h1>🧠 AI Traffic System Dashboard</h1>
+
+  <div style="text-align:right; margin-bottom: 10px;">
+    <form action="/logout" method="get">
+      <button style="background-color: #ff5252; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer;">
+        Logout
+      </button>
+    </form>
+  </div>
+
+  <section>
+    <h2>Live Lane Status</h2>
+    <div id="laneCounts"></div>
+  </section>
+
+  <section>
+    <h2>Emergency Override</h2>
+    <label for="lane">Forced Lane:</label>
+    <select id="lane">
+      <option value="north">North</option>
+      <option value="south">South</option>
+      <option value="east">East</option>
+      <option value="west">West</option>
+    </select>
+    <button onclick="toggleOverride(true)">Activate</button>
+    <button onclick="toggleOverride(false)">Deactivate</button>
+    <p id="overrideStatus" style="margin-top:10px; color:#ffd700;"></p>
+    <p id="recommendation" style="margin-top:10px; color:#4fc3f7;"></p>
+  </section>
+
+  <section>
+    <h2>🚦 Intersection Simulation</h2>
+    <div class="intersection-sim">
+      <div class="lane north"><div class="light" id="light-north"></div></div>
+      <div class="lane south"><div class="light" id="light-south"></div></div>
+      <div class="lane east"><div class="light" id="light-east"></div></div>
+      <div class="lane west"><div class="light" id="light-west"></div></div>
+    </div>
+  </section>
+
+  <!-- 🗺️ Map Legend Section -->
+  <section>
+    <h2>🗺️ Map Marker Legend</h2>
+    <ul style="list-style:none; padding-left:10px; font-size:14px;">
+      <li><span style="display:inline-block;width:12px;height:12px;background:#0f0;border-radius:50%;margin-right:6px;"></span> Low Traffic (0–5)</li>
+      <li><span style="display:inline-block;width:12px;height:12px;background:#ff0;border-radius:50%;margin-right:6px;"></span> Moderate (6–10)</li>
+      <li><span style="display:inline-block;width:12px;height:12px;background:#f00;border-radius:50%;margin-right:6px;"></span> High Traffic (&gt;10)</li>
+      <li><span style="display:inline-block;width:12px;height:12px;background:#0f0;border-radius:50%;margin-right:6px;"></span> OVR — Manual Override</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>📍 Intersection View: Gemmayzeh</h2>
+    <div id="map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+  </section>
+
+  <section>
+    <h2>🚨 Live Red Light Violations</h2>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Incident ID</th>
+          <th>Time</th>
+          <th>Lane</th>
+          <th>Image Folder</th>
+        </tr>
+      </thead>
+      <tbody id="incidentTable"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>👮 On-Call Traffic Officers</h2>
+    <ul id="officerList"></ul>
+  </section>
+
+  <!-- 🛠️ Updated Demo Tools Section -->
+  <section>
+    <h2>🛠️ Demo Tools</h2>
+    <button onclick="simulateViolation()">🚨 Simulate Red Light Violation</button>
+    <button onclick="addRandomOfficer()">👮 Add Random Officer</button>
+    <button onclick="downloadReport()">📥 Export Incident Report (CSV)</button>
+    <button onclick="resetSystem()">♻️ Reset System</button>
+    <p id="demoMsg" style="margin-top:10px; color:#ffd700;"></p>
+  </section>
+
+  <section>
+    <h2>🧾 System Logs (Last 50)</h2>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Event</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody id="logTable"></tbody>
+    </table>
+  </section>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
+
+
+  <script>
+    async function fetchStatus() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+      
+      const allLanes = ["north", "south", "east", "west"];
+      const laneCounts = data.lane_counts || {};
+
+      const out = allLanes.map(lane => {
+        const count = laneCounts[lane] || 0;
+        return `<div><b>${lane.toUpperCase()}</b>: ${count}</div>`;
+      }).join("");
+
+      document.getElementById("laneCounts").innerHTML = out;
+    }
+
+    async function toggleOverride(enable) {
+      const lane = document.getElementById("lane").value;
+      await fetch("/api/override", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: enable, lane: lane })
+      });
+      const msg = enable
+        ? `🟢 Manual override activated for lane: <b>${lane.toUpperCase()}</b>`
+        : `⚪ Manual override <b>deactivated</b>`;
+      document.getElementById("overrideStatus").innerHTML = msg;
+    }
+
+    async function fetchIncidents() {
+      const res = await fetch("/api/incidents");
+      const data = await res.json();
+      const rows = data.map(inc => `
+        <tr>
+          <td>${inc.id}</td>
+          <td>${inc.timestamp}</td>
+          <td>${inc.lane}</td>
+          <td><a href="/logs/${inc.folder}" target="_blank">${inc.folder}</a></td>
+        </tr>
+      `).join("");
+      document.getElementById("incidentTable").innerHTML = rows;
+    }
+
+    async function fetchOfficers() {
+      const res = await fetch("/api/officers");
+      const data = await res.json();
+      const list = data.map(o => `
+        <li><b>${o.name}</b> — ${o.zone} — 📞 ${o.phone}</li>
+      `).join("");
+      document.getElementById("officerList").innerHTML = list;
+    }
+
+    async function fetchRecommendation() {
+      const res = await fetch("/api/recommendation");
+      const data = await res.json();
+      const el = document.getElementById("recommendation");
+      if (data.lane) {
+        el.innerHTML = `🔎 Suggested Override: <b>${data.lane.toUpperCase()}</b> (${data.count} vehicles)`;
+      } else {
+        el.innerHTML = "🔎 No traffic detected.";
+      }
+    }
+
+    async function simulateViolation() {
+      const res = await fetch("/api/simulate_violation", { method: "POST" });
+      const data = await res.json();
+      document.getElementById("demoMsg").innerHTML =
+        `✅ Simulated violation on <b>${data.lane.toUpperCase()}</b> lane`;
+      fetchIncidents();
+    }
+
+    function downloadReport() {
+      window.location.href = "/api/export_report";
+    }
+
+    async function fetchLogs() {
+      const res = await fetch("/api/logs");
+      const data = await res.json();
+      const rows = data.map(log => `
+        <tr>
+          <td>${log.timestamp}</td>
+          <td>${log.event_type}</td>
+          <td>${log.description}</td>
+        </tr>
+      `).join("");
+      document.getElementById("logTable").innerHTML = rows;
+    }
+
+    async function updateIntersectionLights() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+      const activeLane = data.override?.forced_lane || null;
+
+      ["north", "south", "east", "west"].forEach(lane => {
+        const el = document.getElementById(`light-${lane}`);
+        if (!el) return;
+        el.style.background = lane === activeLane ? "#0f0" : "#d00";
+      });
+    }
+
+    async function fetchIntersections() {
+      const res = await fetch("/api/intersections");
+      const data = await res.json();
+      const container = document.getElementById("intersectionList");
+
+      const html = Object.entries(data).map(([name, state]) => {
+        const counts = Object.entries(state.lane_counts)
+          .map(([lane, count]) => `<div><b>${lane.toUpperCase()}</b>: ${count}</div>`)
+          .join("");
+        const override = state.override?.forced_lane
+          ? `<div style="color:#ffd700;">Override: ${state.override.forced_lane.toUpperCase()}</div>`
+          : `<div style="color:#888;">Override: None</div>`;
+
+        return `
+          <div style="background:#2a2a2a; padding:15px; border-radius:8px; box-shadow:0 0 6px #00bcd4; min-width:180px;">
+            <h3 style="color:#4fc3f7; margin-top:0;">${name}</h3>
+            ${counts}
+            ${override}
+          </div>
+        `;
+      }).join("");
+
+      container.innerHTML = html;
+    }
+
+
+    function refreshAll() {
+      fetchStatus();
+      fetchIncidents();
+      fetchOfficers();
+      fetchRecommendation();
+      highlightCongestionLevels(); 
+      fetchLogs();
+      updateIntersectionLights();
+      fetchIntersections();
+    }
+
+    const map = L.map('map').setView([33.895306, 35.509187], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const zoneMarkers = {
+      north: L.marker([33.895306, 35.509187], { title: 'North Camera' }).addTo(map),
+      south: L.marker([33.894905, 35.509230], { title: 'South Camera' }).addTo(map),
+      west:  L.marker([33.895075, 35.508892], { title: 'West Camera' }).addTo(map),
+      east:  L.marker([33.895087, 35.509544], { title: 'East Camera' }).addTo(map)
+    };   
+    
+    async function addRandomOfficer() {
+      const res = await fetch("/api/add_officer", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("demoMsg").innerHTML = `✅ Added officer with ID <b>${data.id}</b>`;
+        fetchOfficers(); 
+      } else {
+        document.getElementById("demoMsg").innerHTML = `❌ Failed to add officer`;
+      }
+    }
+
+    async function highlightCongestionLevels() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+
+      const laneCounts = data.lane_counts || {};
+      const activeOverrideLane = data.override?.forced_lane || null;
+
+      const allLanes = ["north", "south", "east", "west"];
+
+      allLanes.forEach(lane => {
+        const count = laneCounts[lane] || 0;
+        let color = "#555";
+        let label = count.toString();
+
+        if (count <= 5) color = "#0f0";       // Green: Low congestion
+        else if (count <= 10) color = "#ff0"; // Yellow: Moderate
+        else color = "#f00";                  // Red: High
+
+        if (lane === activeOverrideLane) {
+          color = "#0f0";
+          label = "OVR";
+        }
+
+        zoneMarkers[lane].setIcon(
+          L.divIcon({
+            className: "custom-marker",
+            html: `<div style="
+              background:${color};
+              width:32px;
+              height:32px;
+              border-radius:50%;
+              display:flex;
+              justify-content:center;
+              align-items:center;
+              color:#000;
+              font-size:12px;
+              font-weight:bold;
+            ">${label}</div>`,
+            iconSize: [32, 32]
+          })
+        );
+      });
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
+
+
+    async function resetSystem() {
+      const res = await fetch("/api/reset", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("demoMsg").innerHTML = "♻️ System has been reset";
+        refreshAll();
+      } else {
+        document.getElementById("demoMsg").innerHTML = "❌ Reset failed";
+      }
+    }
+
+  </script>
+
+</body>
+</html>

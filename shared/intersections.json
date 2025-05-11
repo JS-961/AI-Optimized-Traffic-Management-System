@@ -1,0 +1,16 @@
+{
+  "GEMMAYZEH": {
+    "id": "GEMMAYZEH",
+    "timestamp": 1746996408.6479232,
+    "lane_counts": {
+      "north": 0,
+      "south": 0,
+      "east": 0,
+      "west": 0
+    },
+    "override": {
+      "manual_override": false,
+      "forced_lane": null
+    }
+  }
+}

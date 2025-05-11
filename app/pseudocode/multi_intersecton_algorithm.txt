@@ -1,0 +1,58 @@
+Each intersection runs independently but:
+
+- Shares its state (vehicle count, mode, override) with neighbors.
+- Coordinates light changes to prevent conflicting flows at close-by intersections.
+
+Priorities are based on:
+
+- Lane congestion.
+- Manual overrides (highest weight).
+- Total vehicle load.
+- Tiebreakers ensure one intersection waits while the other clears its jammed lane.
+
+
+# Define structure to hold all intersections
+intersections = {
+    "gemmayzeh": {
+        "lane_counts": {"north": 5, "south": 3, "east": 7, "west": 2},
+        "override": {"manual_override": False, "forced_lane": None},
+        "mode": "AI",
+        "neighbors": ["sodeco", "mar_mikhael"]
+    },
+    ...
+}
+
+# Algorithm to decide global coordination priorities
+def coordinate_traffic(intersections):
+    global_priority = {}
+
+    for name, data in intersections.items():
+        # 1. Aggregate lane congestion score
+        total_vehicles = sum(data["lane_counts"].values())
+
+        # 2. Factor in overrides
+        if data["override"]["manual_override"]:
+            priority_lane = data["override"]["forced_lane"]
+            score = 100  # Override gets top priority
+        else:
+            # Pick the lane with highest count
+            priority_lane = max(data["lane_counts"], key=data["lane_counts"].get)
+            score = data["lane_counts"][priority_lane]
+
+        global_priority[name] = {
+            "lane": priority_lane,
+            "score": score,
+            "total": total_vehicles
+        }
+
+    # 3. Coordination logic: Resolve conflicts between neighbors
+    for name, data in intersections.items():
+        for neighbor in data["neighbors"]:
+            if global_priority[name]["lane"] == global_priority[neighbor]["lane"]:
+                # Conflict detected — apply tiebreaker
+                if global_priority[name]["score"] >= global_priority[neighbor]["score"]:
+                    intersections[neighbor]["delay"] = True
+                else:
+                    intersections[name]["delay"] = True
+
+    return global_priority
