@@ -1,198 +1,165 @@
-# 🚦 AI-Powered Traffic Management System
+# AI-Optimized Traffic Management System
 
-This is a full-stack, real-time traffic control system built using computer vision, Flask, YOLOv8, SQLite, and a live admin dashboard. Designed to optimize traffic signal behavior, prioritize emergency vehicles, detect red-light violations, and assist traffic administrators with real-time control and oversight.
-
----
-
-## 📌 Project Overview
-
-This project simulates an intelligent traffic intersection control system using Raspberry Pi (for deployment), Python, and a browser-based dashboard. It includes:
-
-- Real-time vehicle detection using YOLOv8
-- Smart traffic signal selection based on congestion
-- Emergency vehicle override with delay buffer
-- Red-light violation detection and evidence capture
-- Full administrative dashboard with live analytics
-- System audit logs for traceability
-- Simulated intersection view and demo tools
+An AI-driven, real-time traffic control system leveraging computer vision, Flask, YOLOv8, SQLite, and a live admin dashboard. Designed to optimize traffic signal behavior, prioritize emergency vehicles, detect red-light violations, and assist traffic administrators with real-time control and oversight.
 
 ---
 
-## 🛠️ Technologies Used
+## 🚦 Project Overview
 
-| Layer | Technology |
-|-------|------------|
-| Backend | Flask (Python) |
-| AI/Detection | YOLOv8 via Ultralytics |
-| Database | SQLite |
-| Dashboard | HTML + CSS + JS (Vanilla) |
-| Visualization | Leaflet.js, Animated HTML UI |
-| Video Capture | OpenCV |
-| Runtime | Raspberry Pi (target), Windows/Linux (dev) |
+This project simulates an intelligent traffic intersection control system with the following features:
 
----
-
-## 🧠 System Architecture
-
-### 📷 Input
-- One or more video feeds (e.g., USB cam, IP cam)
-- YOLOv8 detects vehicles per frame
-
-### 🧮 Processing
-- `VehicleProcessor` assigns vehicle detections to lanes
-- `TrafficLightController` dynamically selects the active green lane
-- Emergency detection temporarily overrides normal flow
-- Red-light violators are captured and logged with screenshots
-
-### 🖥️ Output
-- Flask API updates shared `state`
-- Live dashboard fetches API data every 5s
-- Admin can override signals or simulate conditions
-- Logs and violations are stored and exported
+* **Real-time vehicle detection** using YOLOv8 and OpenCV.
+* **Dynamic traffic signal control** based on live traffic density.
+* **Emergency vehicle prioritization** through manual overrides.
+* **Red-light violation detection** with incident logging.
+* **Interactive dashboard** for monitoring and control.
+* **Data logging** for traffic analysis and reporting.
 
 ---
 
-## 🗂️ Project Structure
+## 🧰 Technologies Used
+
+* **Backend**: Python, Flask
+* **Computer Vision**: OpenCV, YOLOv8
+* **Database**: SQLite
+* **Frontend**: HTML, CSS, JavaScript, Leaflet.js
+* **Visualization**: Leaflet.js for map integration
+
+---
+
+## 📁 Project Structure
 
 ```
 ai_traffic_system/
 ├── app/
-│   ├── camera_registry.py         # Multi-camera config
-│   ├── camera_handler.py          # OpenCV camera manager
-│   ├── yolo_detector.py           # YOLOv8 wrapper
-│   ├── vehicle_processor.py       # Assign detections to lanes
-│   ├── traffic_light_controller.py# Traffic signal logic + override
-│   ├── state.py                   # Shared memory across modules
-│   └── db/
-│       ├── db_manager.py          # All DB functions
-│       └── traffic_system.db      # SQLite DB
-│
+│   ├── camera.py
+│   ├── intersection_sync.py
+│   └── ...
 ├── dashboard/
-│   ├── templates/
-│   │   └── index.html             # Admin dashboard UI
-│   └── routes.py                  # API and page logic
-│
-├── simulation/
-│   └── traffic_sim.py             # Legacy (Pygame) sim (optional)
-├── multi_cam_run.py               # Multi-camera YOLO inference runner
-├── run.py                         # Single-camera entry point
-├── run_dashboard.py               # Launch Flask server
-├── init_db.py                     # Sets up DB tables
+│   ├── routes.py
+│   └── ...
+├── static/
+│   ├── style.css
+│   └── ...
+├── templates/
+│   ├── index.html
+│   └── ...
+├── models/
+│   └── yolov8n.pt
+├── logs/
+│   └── lane_traffic_log.csv
+├── run_dashboard.py
+├── run_camera.py
+└── requirements.txt
 ```
 
 ---
 
-## 🧪 Key Features
+## 🚀 Getting Started
 
-### 🧠 AI-Powered Vehicle Detection
-- YOLOv8 runs on every frame
-- Vehicle bounding boxes classified into directions (north, south, etc.)
+### Prerequisites
 
-### 🚦 Smart Signal Control
-- Lanes with the highest car count are prioritized
-- A failsafe kicks in if no dominant lane exists
-- Manual override via dashboard
+* Python 3.8 or higher
+* pip
 
-### 🚨 Emergency Vehicle Priority
-- Detected via input trigger or simulation
-- Overrides current cycle with a delay buffer
-- Deactivates automatically when vehicle exits frame
+### Installation
 
-### 🚫 Red Light Violation Detection
-- Triggers when car crosses stop line on red
-- Screenshot evidence captured
-- Incident logged to database
-- Can be simulated via admin panel
+1. **Clone the repository:**
 
-### 📤 CSV Report Export
-- Incidents exportable via dashboard
-- Preformatted with ID, timestamp, lane, folder, etc.
-
-### 🧾 System Audit Logs
-- Every event is tracked:
-  - Override toggles
-  - Violation triggers
-  - Export actions
-  - Emergency activations
-- Logs viewable in dashboard
-
-### 🌍 Real-Time Intersection View
-- Leaflet.js map of Gemmayzeh intersection
-- Directional camera markers
-- Simulated lane activation with animated lights
-
----
-
-## 💻 Demo Tools
-
-Use these from the dashboard to simulate events:
-
-| Tool | Action |
-|------|--------|
-| ✅ Simulate Violation | Fakes a red-light run |
-| ✅ Force Override | Picks a green lane manually |
-| ✅ Export CSV | Downloads report for all active incidents |
-
----
-
-## 🧱 Simulated Intersection View
-
-A lightweight animated panel is embedded in the dashboard that:
-
-- Mimics a 4-way intersection
-- Lights update in real-time based on system state
-- Provides a visual alternative to Unity or SUMO
-
----
-
-## ⚙️ Setup & Run
-
-1. Install requirements:
+   ```bash
+   git clone https://github.com/JS-961/AI-Optimized-Traffic-Management-System.git
+   cd AI-Optimized-Traffic-Management-System
    ```
+
+
+
+2. **Create a virtual environment and activate it:**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+
+
+3. **Install the required packages:**
+
+   ```bash
    pip install -r requirements.txt
    ```
 
-2. Run YOLO on live camera:
-   ```
-   python multi_cam_run.py
+
+
+4. **Download YOLOv8 model weights:**
+
+   Place the `yolov8n.pt` model file into the `models/` directory. You can download it from the [Ultralytics YOLOv8 repository](https://github.com/ultralytics/yolov8).
+
+---
+
+## 🧪 Running the Application
+
+1. **Start the camera processing module:**
+
+   ```bash
+   python run_camera.py
    ```
 
-3. Launch dashboard:
-   ```
+
+
+2. **Start the Flask dashboard:**
+
+   ```bash
    python run_dashboard.py
    ```
 
-4. Initialize database (first time only):
-   ```
-   python init_db.py
-   ```
+
+
+3. **Access the dashboard:**
+
+   Open your web browser and navigate to `http://localhost:5000`.
 
 ---
 
-## ✅ Status Summary
+## 📊 Dashboard Features
 
-| Module | Status |
-|--------|--------|
-| AI Detection | ✅ Complete |
-| Traffic Logic | ✅ Complete |
-| Emergency Flow | ✅ Complete |
-| Red-Light Capture | ✅ Complete |
-| Admin UI | ✅ Complete |
-| Multi-Cam Support | ✅ Complete |
-| Map Anchoring | ✅ Complete |
-| Audit Logs | ✅ Complete |
-| Demo Mode | ✅ Complete |
-| 3D Model | 🚧 Replaced with animated HTML |
+* **Live Lane Status**: Displays real-time vehicle counts per lane.
+* **Emergency Override**: Manually override traffic signals for emergency situations.
+* **Intersection Simulation**: Visual representation of traffic lights and their current states.
+* **Map Integration**: Interactive map showing the intersection location.
+* **Red-Light Violations**: Logs and displays incidents of red-light violations.
+* **On-Call Officers**: List of traffic officers available for deployment.
+* **Demo Tools**: Simulate violations, add officers, export reports, and reset the system.
+* **System Logs**: View the latest 50 system events for monitoring and debugging.([GitHub][1], [BLOCKGENI][2], [GitHub][3], [GitHub][4])
 
 ---
 
-## 🧠 Author Notes
+## 📄 Documentation
 
-- Project based on the real-world intersection in Gemmayzeh, Beirut
-- Designed for deployment on Raspberry Pi 5 (8 GB)
-- Intended as a prototype for scalable AI traffic control
+For a detailed explanation of the system architecture, algorithms used, and future enhancements, please refer to the [Project Report](docs/Project_Report.pdf).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
 
 ---
 
 ## 📜 License
-This project is part of a university capstone and is shared for academic demonstration purposes.
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 📞 Contact
+
+For any inquiries or feedback, please contact jawadsaad2004@hotmail.com, or hicham.w.saad@gmail.com
+
+---
+
+Feel free to customize the contact information and add any additional sections as needed. Let me know if you need assistance with anything else!
+
+[1]: https://github.com/aaronseq12/AITrafficManagementSystem?utm_source=chatgpt.com "AI-based Traffic Management System that utilizes IoT and ... - GitHub"
+[2]: https://blockgeni.com/ai-and-ml-based-integrated-traffic-management-system/?utm_source=chatgpt.com "AI and ML-Based Integrated Traffic Management System - BLOCKGENI"
+[3]: https://github.com/Prit2341/Traffic-Management-Using-AI?utm_source=chatgpt.com "Prit2341/Traffic-Management-Using-AI - GitHub"
+[4]: https://github.com/chahalbaljinder/RoadRanger-AI-Traffic-Optimization-System?utm_source=chatgpt.com "chahalbaljinder/RoadRanger-AI-Traffic-Optimization-System - GitHub"
